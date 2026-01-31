@@ -186,13 +186,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 725fa51853524b844bbefbf2bb7ca695, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FPSController
-  moveSpeed: 5
+  moveSpeed: 4
   gravity: -9
   jumpHeight: 1.15
   mouseSensitivity: 40
   cameraTransform: {fileID: 2853108045970845346}
   smoothTime: 0.06
-  sprintSpeedMultiplier: 1.6
+  sprintSpeedMultiplier: 1.4
   sprintFOV: 95
   fovSmoothSpeed: 8
   bobFrequency: 1.8
@@ -652,6 +652,8 @@ MonoBehaviour:
   CurrentAmmo: {fileID: 0}
   FullAmmo: {fileID: 0}
   maxAmmo: 12
+  bulletPrefab: {fileID: 0}
+  bulletPoint: {fileID: 0}
   recoilDistance: 0.3
   recoilReturnSpeed: 8
   recoilKickAngle: 42.9
