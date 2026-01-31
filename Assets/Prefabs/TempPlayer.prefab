@@ -647,8 +647,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Gun
   shotPoint: {fileID: 2262762783847790989}
-  shotCooldown: 0
-  reloadTime: 0
+  shotCooldown: 1
+  reloadTime: 1
   CurrentAmmo: {fileID: 0}
   FullAmmo: {fileID: 0}
   maxAmmo: 12
