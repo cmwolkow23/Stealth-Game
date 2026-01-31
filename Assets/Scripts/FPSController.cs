@@ -12,6 +12,37 @@ public class FPSController : MonoBehaviour
     public float mouseSensitivity = 100f;
     public Transform cameraTransform;
 
+    [Header("Mouse Smoothing")]
+    public float smoothTime = 0.05f;
+
+    private Vector2 currentLook;
+    private Vector2 lookVelocity;
+    
+    [Header("Sprint")]
+    public float sprintSpeedMultiplier = 1.6f;
+    public float sprintFOV = 75f;
+    public float fovSmoothSpeed = 8f;
+
+    [Header("Head Bob")]
+    public float bobFrequency = 1.8f;
+    public float bobAmplitude = 0.05f;
+    public float sprintBobMultiplier = 1.4f;
+    
+    [Header("Crouch")]
+    public float crouchHeight = 1.0f;
+    public float crouchCameraOffset = -0.5f;
+    public float crouchTransitionSpeed = 8f;
+
+    private bool isCrouching;
+    private float standingHeight;
+    private Vector3 standingCenter;
+
+    private bool isSprinting;
+    private float bobTimer;
+    private float defaultFOV;
+    private Vector3 cameraStartLocalPos;
+    private Camera cam;
+
     private CharacterController controller;
     private InputSystem_Actions input;
     private Vector2 moveInput;
@@ -27,18 +58,29 @@ public class FPSController : MonoBehaviour
 
     void OnEnable()
     {
-        input.Player.Enable();
+        input.Enable();
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        cam = cameraTransform.GetComponent<Camera>();
+        defaultFOV = cam.fieldOfView;
+        cameraStartLocalPos = cameraTransform.localPosition;
+        standingHeight = controller.height;
+        standingCenter = controller.center;
+
     }
 
     void OnDisable()
     {
-        input.Player.Disable();
+        input.Disable();
     }
 
     void Update()
     {
         HandleMovement();
         HandleLook();
+        HandleCrouch();
+        HandleHeadBob();
+        HandleFOV();
     }
 
     void HandleMovement()
@@ -50,14 +92,22 @@ public class FPSController : MonoBehaviour
 
         verticalVelocity += gravity * Time.deltaTime;
 
-        Vector3 velocity = moveSpeed * move + Vector3.up * verticalVelocity;
+        float speed = isSprinting ? moveSpeed * sprintSpeedMultiplier : moveSpeed;
+        Vector3 velocity = speed * move + Vector3.up * verticalVelocity;
         controller.Move(velocity * Time.deltaTime);
     }
 
     void HandleLook()
     {
-        float mouseX = lookInput.x * mouseSensitivity * Time.deltaTime;
-        float mouseY = lookInput.y * mouseSensitivity * Time.deltaTime;
+        currentLook = Vector2.SmoothDamp(
+            currentLook,
+            lookInput,
+            ref lookVelocity,
+            smoothTime
+        );
+
+        float mouseX = currentLook.x * mouseSensitivity * Time.deltaTime;
+        float mouseY = currentLook.y * mouseSensitivity * Time.deltaTime;
 
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
@@ -65,6 +115,35 @@ public class FPSController : MonoBehaviour
         cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
         transform.Rotate(Vector3.up * mouseX);
     }
+    void HandleCrouch()
+    {
+        float targetHeight = isCrouching ? crouchHeight : standingHeight;
+        Vector3 targetCenter = isCrouching
+            ? new Vector3(0, crouchHeight / 2f, 0)
+            : standingCenter;
+
+        controller.height = Mathf.Lerp(
+            controller.height,
+            targetHeight,
+            Time.deltaTime * crouchTransitionSpeed
+        );
+
+        controller.center = Vector3.Lerp(
+            controller.center,
+            targetCenter,
+            Time.deltaTime * crouchTransitionSpeed
+        );
+
+        Vector3 targetCameraPos = cameraStartLocalPos +
+            (isCrouching ? Vector3.up * crouchCameraOffset : Vector3.zero);
+
+        cameraTransform.localPosition = Vector3.Lerp(
+            cameraTransform.localPosition,
+            targetCameraPos,
+            Time.deltaTime * crouchTransitionSpeed
+        );
+    }
+
 
     public void OnMove(InputAction.CallbackContext context)
     {
@@ -82,5 +161,73 @@ public class FPSController : MonoBehaviour
 
         verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
     }
+    public void OnSprint(InputAction.CallbackContext context)
+    {
+        isSprinting = context.ReadValueAsButton();
+    }
+    public void OnCrouch(InputAction.CallbackContext context)
+    {
+        if (!context.performed) return;
+
+        if (isCrouching)
+            TryStandUp();
+        else
+            StartCrouch();
+    }
+
+    void HandleHeadBob()
+    {
+        if (!controller.isGrounded || moveInput.magnitude < 0.1f)
+        {
+
+            cameraTransform.localPosition = Vector3.Lerp(
+                cameraTransform.localPosition,
+                cameraStartLocalPos,
+                Time.deltaTime * 8f
+            );
+            bobTimer = 0f;
+            return;
+        }
+
+        float frequency = bobFrequency;
+        float amplitude = bobAmplitude;
+
+        if (isSprinting)
+        {
+            frequency *= sprintBobMultiplier;
+            amplitude *= sprintBobMultiplier;
+        }
+
+        bobTimer += Time.deltaTime * frequency;
+
+        float bobOffsetY = Mathf.Sin(bobTimer) * amplitude;
+        float bobOffsetX = Mathf.Cos(bobTimer * 2) * (amplitude * 0.5f);
+        cameraTransform.localPosition = cameraStartLocalPos + Vector3.up * bobOffsetY;
+    }
+    void HandleFOV()
+    {
+        float targetFOV = isSprinting ? sprintFOV : defaultFOV;
+        cam.fieldOfView = Mathf.Lerp(
+            cam.fieldOfView,
+            targetFOV,
+            Time.deltaTime * fovSmoothSpeed);
+    }
+    void StartCrouch()
+    {
+        isCrouching = true;
+        isSprinting = false;
+    }
+
+    void TryStandUp()
+    {
+        float checkDistance = standingHeight - crouchHeight;
+        Vector3 origin = transform.position + Vector3.up * crouchHeight;
+
+        if (Physics.SphereCast(origin, controller.radius, Vector3.up, out _, checkDistance))
+            return; 
+
+        isCrouching = false;
+    }
+
 }
 
