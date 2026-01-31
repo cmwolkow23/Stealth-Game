@@ -17,9 +17,24 @@ public class Gun : MonoBehaviour
     private TMP_Text FullAmmo;
     [SerializeField]
     private int maxAmmo = 12;
+    [SerializeField]
+    private GameObject bulletPrefab;
+    [SerializeField]
+    private GameObject bulletPoint;
     private int cAmmo;
     private Vector3 originalPos;
-    
+    private Vector3 originalEuler;
+
+    // Recoil settings
+    [SerializeField] private float recoilDistance = 0.08f;
+    [SerializeField] private float recoilReturnSpeed = 8f;
+    [SerializeField] private float recoilKickAngle = 6f;
+    [SerializeField] private float recoilRotReturnSpeed = 8f;
+
+    // Runtime recoil state
+    private Vector3 recoilOffset = Vector3.zero;
+    private Vector3 recoilRotOffset = Vector3.zero;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private void Awake()
     {
@@ -31,6 +46,10 @@ public class Gun : MonoBehaviour
         FullAmmo.text = maxAmmo.ToString();
         CurrentAmmo.text = maxAmmo.ToString();
         cAmmo = maxAmmo;
+
+        // cache original local transform for recoil math
+        originalPos = transform.localPosition;
+        originalEuler = transform.localEulerAngles;
     }
     private void OnDisable()
     {
@@ -57,15 +76,22 @@ public class Gun : MonoBehaviour
             cAmmo = maxAmmo;
             CurrentAmmo.text = cAmmo.ToString();
         }
+
+        // Small bob while moving
         Vector2 moveInput = inputActions.Player.Move.ReadValue<Vector2>();
+        Vector3 bobOffset = Vector3.zero;
         if (moveInput != Vector2.zero)
         {
-            transform.localPosition += new Vector3(0f, Mathf.Sin(Time.time * 10f) * 0.001f, 0f);
+            bobOffset = new Vector3(0f, Mathf.Sin(Time.time * 10f) * 0.01f, 0f);
         }
-        else if (transform.position != originalPos)
-        {
-            transform.localPosition = new Vector3(transform.localPosition.x, -0.328f, transform.localPosition.z);
-        }
+
+        // Decay recoil offsets back to zero smoothly
+        recoilOffset = Vector3.Lerp(recoilOffset, Vector3.zero, Time.deltaTime * recoilReturnSpeed);
+        recoilRotOffset = Vector3.Lerp(recoilRotOffset, Vector3.zero, Time.deltaTime * recoilRotReturnSpeed);
+
+        // Apply final local transform: original + bob + recoil
+        transform.localPosition = originalPos + bobOffset + recoilOffset;
+        transform.localEulerAngles = originalEuler + recoilRotOffset;
     }
 
     void Shoot()
@@ -76,5 +102,16 @@ public class Gun : MonoBehaviour
         {
             Debug.Log("Hit: " + hitInfo.collider.name);
         }
+
+        // Instantiate bullet WITHOUT parenting it to the gun (so it won't move with the camera)
+        Instantiate(bulletPrefab, bulletPoint.transform.position, bulletPoint.transform.rotation);
+
+        // Apply positional recoil along local Z (kickback)
+        // Using local Z axis: negative Z to move the gun back
+        recoilOffset += new Vector3(0f, 0f, -recoilDistance);
+
+        // Apply rotation recoil (kick the muzzle up and add a slight random yaw)
+        float yawRandom = Random.Range(-recoilKickAngle * 0.2f, recoilKickAngle * 0.2f);
+        recoilRotOffset += new Vector3(-recoilKickAngle, yawRandom, 0f);
     }  
 }

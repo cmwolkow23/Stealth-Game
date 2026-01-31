@@ -652,6 +652,10 @@ MonoBehaviour:
   CurrentAmmo: {fileID: 0}
   FullAmmo: {fileID: 0}
   maxAmmo: 12
+  recoilDistance: 0.3
+  recoilReturnSpeed: 8
+  recoilKickAngle: 42.9
+  recoilRotReturnSpeed: 5.68
 --- !u!4 &8971226084643227196 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 15639c60d44051444bd718d87e3c6750, type: 3}
