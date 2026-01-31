@@ -746,14 +746,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3410380194059307041, guid: 22cd808b65427ef489102bc5df3fbace, type: 3}
-      propertyPath: moveSpeed
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 3410380194059307041, guid: 22cd808b65427ef489102bc5df3fbace, type: 3}
-      propertyPath: sprintSpeedMultiplier
-      value: 1.4
-      objectReference: {fileID: 0}
     - target: {fileID: 5367461740046270467, guid: 22cd808b65427ef489102bc5df3fbace, type: 3}
       propertyPath: m_Name
       value: TempPlayer
