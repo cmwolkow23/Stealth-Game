@@ -163,6 +163,11 @@ public class FPSController : MonoBehaviour
     }
     public void OnSprint(InputAction.CallbackContext context)
     {
+        if (isCrouching)
+        {
+            isSprinting = false;
+            return;
+        }
         isSprinting = context.ReadValueAsButton();
     }
     public void OnCrouch(InputAction.CallbackContext context)
