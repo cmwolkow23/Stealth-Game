@@ -18,6 +18,12 @@ public class enemyHealthSystem : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float deathVolume = 1f;
     [SerializeField] private bool destroyIfNoClip = true;
 
+    // Ragdoll / impulse settings
+    [SerializeField] private bool useChildRigidbodies = true;
+    [SerializeField] private float ragdollImpulseMin = 5f;
+    [SerializeField] private float ragdollImpulseMax = 15f;
+    [SerializeField] private float ragdollTorque = 10f;
+
     void Start()
     {
         currentHealth = maxHealth;
@@ -58,6 +64,55 @@ public class enemyHealthSystem : MonoBehaviour
     {
         // Handle enemy death (e.g., play animation, drop loot, etc.)
         Debug.Log("Enemy has died.");
+        if(TryGetComponent<Collider>(out Collider col))
+        {
+            col.enabled = false; // Disable collider on death
+        }
+
+        // Apply ragdoll impulse: either to child rigidbodies (typical ragdoll bones)
+        // or to this object's Rigidbody if children are not present.
+        if (useChildRigidbodies)
+        {
+            Rigidbody[] childRbs = GetComponentsInChildren<Rigidbody>();
+            if (childRbs != null && childRbs.Length > 0)
+            {
+                foreach (var cRb in childRbs)
+                {
+                    // Ensure physics is enabled on bone rigidbodies
+                    cRb.isKinematic = false;
+
+                    // Random direction with slight upward bias
+                    Vector3 dir = (Random.onUnitSphere + Vector3.up * 0.5f).normalized;
+                    float impulse = Random.Range(ragdollImpulseMin, ragdollImpulseMax);
+
+                    cRb.AddForce(dir * impulse, ForceMode.Impulse);
+                    cRb.AddTorque(Random.onUnitSphere * ragdollTorque, ForceMode.Impulse);
+                }
+            }
+            else
+            {
+                // Fall back to single rigidbody on object
+                if (TryGetComponent<Rigidbody>(out Rigidbody rb))
+                {
+                    rb.isKinematic = false;
+                    Vector3 dir = (Random.onUnitSphere + Vector3.up * 0.5f).normalized;
+                    float impulse = Random.Range(ragdollImpulseMin, ragdollImpulseMax);
+                    rb.AddForce(dir * impulse, ForceMode.Impulse);
+                    rb.AddTorque(Random.onUnitSphere * ragdollTorque, ForceMode.Impulse);
+                }
+            }
+        }
+        else
+        {
+            if (TryGetComponent<Rigidbody>(out Rigidbody rb))
+            {
+                rb.isKinematic = false;
+                Vector3 dir = (Random.onUnitSphere + Vector3.up * 0.5f).normalized;
+                float impulse = Random.Range(ragdollImpulseMin, ragdollImpulseMax);
+                rb.AddForce(dir * impulse, ForceMode.Impulse);
+                rb.AddTorque(Random.onUnitSphere * ragdollTorque, ForceMode.Impulse);
+            }
+        }
 
         // Start coroutine that plays death sound (if any) and waits before destroying the object
         StartCoroutine(PlayDeathAndDestroy());
@@ -85,8 +140,8 @@ public class enemyHealthSystem : MonoBehaviour
         {
             if (!destroyIfNoClip)
             {
+                yield return new WaitForSeconds(1f);
                 // If configured to not destroy when no clip is assigned, just exit
-                yield break;
             }
             // otherwise proceed to destroy immediately
         }

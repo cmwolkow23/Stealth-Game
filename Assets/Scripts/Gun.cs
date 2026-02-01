@@ -29,16 +29,12 @@ public class Gun : MonoBehaviour
     private AudioSource audioSource;
     [SerializeField]
     private int damage = 100;
-
-    // Recoil settings
-    [SerializeField] private float recoilDistance = 0.08f;
-    [SerializeField] private float recoilReturnSpeed = 8f;
-    [SerializeField] private float recoilKickAngle = 6f;
-    [SerializeField] private float recoilRotReturnSpeed = 8f;
-
-    // Runtime recoil state
-    private Vector3 recoilOffset = Vector3.zero;
-    private Vector3 recoilRotOffset = Vector3.zero;
+    [SerializeField]
+    private AudioClip reloadSound;
+    [SerializeField]
+    private AudioClip emptySound;
+    [SerializeField]
+    private Animator gunAnimator;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private void Awake()
@@ -72,32 +68,41 @@ public class Gun : MonoBehaviour
         if (inputActions.Player.Attack.IsPressed() && shotCooldown <= 0 && cAmmo > 0)
         {
             Shoot();
+            gunAnimator.SetTrigger("Shoot");
             shotCooldown = 0.5f;
             cAmmo--;
             CurrentAmmo.text = cAmmo.ToString();
         }
-        if(inputActions.Player.Reload.WasPressedThisFrame() && reloadTime <= 0)
+        else if(inputActions.Player.Attack.WasPressedThisFrame()&& shotCooldown <= 0 && cAmmo <= 0)
         {
+            audioSource.PlayOneShot(emptySound);
+        }
+        if (inputActions.Player.Reload.WasPressedThisFrame() && reloadTime <= 0)
+        {
+            audioSource.PlayOneShot(reloadSound);
             reloadTime = 2f;
             cAmmo = maxAmmo;
             CurrentAmmo.text = cAmmo.ToString();
+            gunAnimator.SetTrigger("Reload");
+            
         }
 
         // Small bob while moving
         Vector2 moveInput = inputActions.Player.Move.ReadValue<Vector2>();
-        Vector3 bobOffset = Vector3.zero;
+
         if (moveInput != Vector2.zero)
         {
-            bobOffset = new Vector3(0f, Mathf.Sin(Time.time * 10f) * 0.01f, 0f);
+            gunAnimator.SetBool("Moving", true);
+        }
+        else
+        {
+            if (gunAnimator.GetBool("Moving") == true)
+            {
+                gunAnimator.SetBool("Moving", false);
+            }
         }
 
-        // Decay recoil offsets back to zero smoothly
-        recoilOffset = Vector3.Lerp(recoilOffset, Vector3.zero, Time.deltaTime * recoilReturnSpeed);
-        recoilRotOffset = Vector3.Lerp(recoilRotOffset, Vector3.zero, Time.deltaTime * recoilRotReturnSpeed);
-
-        // Apply final local transform: original + bob + recoil
-        transform.localPosition = originalPos + bobOffset + recoilOffset;
-        transform.localEulerAngles = originalEuler + recoilRotOffset;
+        
     }
 
     void Shoot()
@@ -117,12 +122,5 @@ public class Gun : MonoBehaviour
         // Instantiate bullet WITHOUT parenting it to the gun (so it won't move with the camera)
         Instantiate(bulletPrefab, bulletPoint.transform.position, bulletPoint.transform.rotation);
 
-        // Apply positional recoil along local Z (kickback)
-        // Using local Z axis: negative Z to move the gun back
-        recoilOffset += new Vector3(0f, 0f, -recoilDistance);
-
-        // Apply rotation recoil (kick the muzzle up and add a slight random yaw)
-        float yawRandom = Random.Range(-recoilKickAngle * 0.2f, recoilKickAngle * 0.2f);
-        recoilRotOffset += new Vector3(-recoilKickAngle, yawRandom, 0f);
     }  
 }
