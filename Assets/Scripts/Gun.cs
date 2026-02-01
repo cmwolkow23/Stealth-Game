@@ -24,6 +24,11 @@ public class Gun : MonoBehaviour
     private int cAmmo;
     private Vector3 originalPos;
     private Vector3 originalEuler;
+    [SerializeField]
+    private AudioClip shootSound;
+    private AudioSource audioSource;
+    [SerializeField]
+    private int damage = 100;
 
     // Recoil settings
     [SerializeField] private float recoilDistance = 0.08f;
@@ -43,6 +48,7 @@ public class Gun : MonoBehaviour
     private void OnEnable()
     {
         inputActions.Enable();
+        audioSource = GetComponent<AudioSource>();
         FullAmmo.text = maxAmmo.ToString();
         CurrentAmmo.text = maxAmmo.ToString();
         cAmmo = maxAmmo;
@@ -98,9 +104,14 @@ public class Gun : MonoBehaviour
     {
         Debug.Log("Bang!");
         Debug.DrawRay(shotPoint.transform.position, shotPoint.transform.forward, Color.red, 999f);
+        audioSource.PlayOneShot(shootSound);
         if (Physics.Raycast(shotPoint.transform.position, shotPoint.transform.forward, out RaycastHit hitInfo))
         {
             Debug.Log("Hit: " + hitInfo.collider.name);
+            if(hitInfo.transform.GetComponent<enemyHealthSystem>() != null)
+            {
+                hitInfo.transform.GetComponent<enemyHealthSystem>().OnHit(damage);
+            }
         }
 
         // Instantiate bullet WITHOUT parenting it to the gun (so it won't move with the camera)
