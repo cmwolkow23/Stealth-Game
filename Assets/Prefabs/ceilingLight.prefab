@@ -68,6 +68,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: ceilingLight
       objectReference: {fileID: 0}
+    - target: {fileID: 1401490844346311325, guid: c4cb85d006470794abdf83e3b65779bf, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4399677413453128917, guid: c4cb85d006470794abdf83e3b65779bf, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 4399677413453128917, guid: c4cb85d006470794abdf83e3b65779bf, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
