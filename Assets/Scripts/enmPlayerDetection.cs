@@ -23,6 +23,8 @@ public class enmPlayerDetection : MonoBehaviour
     [SerializeField]
     private Image detectBar;
     private float originalBarWidth;
+    [SerializeField]
+    private float enmSpeed = 3.5f;
 
     private void Start()
     {
@@ -34,19 +36,61 @@ public class enmPlayerDetection : MonoBehaviour
             originalBarWidth = detectBar.rectTransform.rect.width;
             UpdateHealthBar();
         }
+        player = GameObject.FindGameObjectWithTag("Player");
+    }
+    private void OnEnable()
+    {
+        FPSController.OnPlayerDeath += onPlayerDeath;
+    }
+    private void OnDisable()
+    {
+        FPSController.OnPlayerDeath -= onPlayerDeath;
     }
 
     private void Update()
     {
-        if (!detectionInProgress)
+        Debug.Log("Detection Timer: " + detectionTimer);
+        Debug.Log(detectionInProgress);
+        if (detectionInProgress && !playerDetected)
         {
-            detectionTimer = Mathf.Max(detectionTimer - Time.deltaTime, 0f);
+            detectionTimer += Time.deltaTime;
+            detectionTimer = Mathf.Clamp(detectionTimer, 0f, detectionInterval);
+        }
+        else
+        {
+            Debug.Log("Decreasing Detection Timer");
+            detectionTimer -= Time.deltaTime;
+            detectionTimer = Mathf.Clamp(detectionTimer, 0f, detectionInterval);
             if (!playerDetected)
                 UpdateHealthBar();
         }
+        if (detectionTimer >= detectionInterval)
+        {
+            if (!playerDetected)
+            {
+                detectionAudioSource.PlayOneShot(detectionClip);
+            }
+            playerDetected = true;
+            detectionTimer = 0f;
+        }
         if (playerDetected)
         {
+            if (TryGetComponent<enemyHealthSystem>(out enemyHealthSystem enemyHealth))
+            {
+                if (enemyHealth.currentHealth <= 0)
+                    return;
+            }
             navMeshAgent.SetDestination(player.transform.position);
+            navMeshAgent.speed = enmSpeed;
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject == player)
+        {
+            detectionInProgress = true;
+            //detectionTimer += Time.deltaTime;
         }
     }
 
@@ -54,23 +98,16 @@ public class enmPlayerDetection : MonoBehaviour
     {
         if (other.gameObject == player)
         {
-            detectionInProgress = true;
-            detectionTimer += Time.deltaTime;
+            if(!detectionInProgress)
+                detectionInProgress = true;
+            //detectionTimer += Time.deltaTime;
             if(!playerDetected)
                 UpdateHealthBar();
-            if (detectionTimer >= detectionInterval)
-            {
-                if (!playerDetected)
-                {
-                    detectionAudioSource.PlayOneShot(detectionClip);
-                }
-                playerDetected = true;
-                detectionTimer = 0f;
-            }
+            
         }
         else
         {
-            detectionTimer = Mathf.Max(detectionTimer - Time.deltaTime, 0f);
+            //detectionTimer = Mathf.Max(detectionTimer - Time.deltaTime, 0f);
             if(!playerDetected)
                 UpdateHealthBar();
         }
@@ -89,5 +126,15 @@ public class enmPlayerDetection : MonoBehaviour
 
         // Recommended API to change RectTransform width at runtime:
         detectBar.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, newWidth);
+    }
+
+    private void onPlayerDeath()
+    {
+        if(TryGetComponent<NavMeshAgent>(out NavMeshAgent navMeshAgent))
+        {
+            //navMeshAgent.isStopped = true;
+            navMeshAgent.enabled = false;
+        }
+
     }
 }

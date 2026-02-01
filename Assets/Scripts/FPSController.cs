@@ -1,5 +1,8 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System;
+using UnityEngine.AI;
 
 public class FPSController : MonoBehaviour
 {
@@ -49,6 +52,18 @@ public class FPSController : MonoBehaviour
     private Vector2 lookInput;
     private float verticalVelocity;
     private float xRotation = 0f;
+    public bool isInView = false;
+
+    [SerializeField]
+    private Canvas gameEnd;
+    [SerializeField]
+    private TextMeshProUGUI gameOverText;
+    [SerializeField]
+    private TextMeshProUGUI winText;
+    [SerializeField]
+    private GameObject hud;
+
+    public static event Action OnPlayerDeath;
 
     void Awake()
     {
@@ -233,6 +248,90 @@ public class FPSController : MonoBehaviour
 
         isCrouching = false;
     }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(collision.gameObject.CompareTag("Enemy"))
+        {
+            playerDeath();
+        }
+    }
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.CompareTag("Enemy"))
+        {
+            isInView = true;
+        }
+        if (other.gameObject.CompareTag("Win") && ItemPickup.allMasksCollected)
+        {
+            playerWin();
+        }
+    }
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.gameObject.CompareTag("Enemy"))
+        {
+            isInView = true;
+        }
+    }
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.gameObject.CompareTag("Enemy"))
+        {
+            isInView = false;
+        }
+    }
+    void playerDeath()
+    {
+        hud.SetActive(false);
+        // Implement player death logic here
+        Debug.Log("Player has died.");
+        TryGetComponent<NavMeshAgent>(out NavMeshAgent navMeshAgent);
+        if (navMeshAgent != null)
+        {
+            navMeshAgent.enabled = false;
+        }
+        if(TryGetComponent<Footsteps>(out Footsteps footstep))
+        {
+            footstep.enabled = false;
+        }
+        if (TryGetComponent<AudioSource>(out AudioSource audioSource))
+        {
+            audioSource.enabled = false;
+        }
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        OnPlayerDeath?.Invoke();
+        gameEnd.gameObject.SetActive(true);
+        gameOverText.gameObject.SetActive(true);
+        this.enabled = false;
+    }
+    void playerWin()
+    {
+        hud.SetActive(false);
+        // Implement player death logic here
+        Debug.Log("Player has Won.");
+        TryGetComponent<NavMeshAgent>(out NavMeshAgent navMeshAgent);
+        if (navMeshAgent != null)
+        {
+            navMeshAgent.enabled = false;
+        }
+        if (TryGetComponent<Footsteps>(out Footsteps footstep))
+        {
+            footstep.enabled = false;
+        }
+        if(TryGetComponent<AudioSource>(out AudioSource audioSource))
+        {
+            audioSource.enabled = false;
+        }
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        OnPlayerDeath?.Invoke();
+        gameEnd.gameObject.SetActive(true);
+        winText.gameObject.SetActive(true);
+        this.enabled = false;
+    }
+
 
 }
 

@@ -1,14 +1,15 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.UI;
 
 public class enemyHealthSystem : MonoBehaviour
 {
     [SerializeField]
     private int maxHealth = 100;
-    private int currentHealth;
-    [SerializeField]
-    private Image healthBar;
+    public int currentHealth;
+    //[SerializeField]
+   // private Image healthBar;
 
     // Cached full width of the health image's RectTransform (set at Start)
     private float originalBarWidth;
@@ -28,22 +29,22 @@ public class enemyHealthSystem : MonoBehaviour
     {
         currentHealth = maxHealth;
 
-        if (healthBar != null)
-        {
+       // if (healthBar != null)
+       // {
             // Cache the initial width so we can scale it by health percent.
             // Note: if you use LayoutGroups the rect width may be zero at Start;
             // call LayoutRebuilder.ForceRebuildLayoutImmediate(...) if needed.
-            originalBarWidth = healthBar.rectTransform.rect.width;
-            UpdateHealthBar();
-        }
+           // originalBarWidth = healthBar.rectTransform.rect.width;
+            //UpdateHealthBar();
+       // }
     }
 
     public void OnHit(int Damage)
     {
         currentHealth = Mathf.Clamp(currentHealth - Damage, 0, maxHealth);
 
-        if (healthBar != null)
-            UpdateHealthBar();
+        /*if (healthBar != null)
+            UpdateHealthBar();*/
 
         if (currentHealth <= 0)
         {
@@ -51,22 +52,31 @@ public class enemyHealthSystem : MonoBehaviour
         }
     }
 
-    private void UpdateHealthBar()
+    /*private void UpdateHealthBar()
     {
         float pct = (float)currentHealth / maxHealth;
         float newWidth = originalBarWidth * pct;
 
         // Recommended API to change RectTransform width at runtime:
         healthBar.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, newWidth);
-    }
+    }*/
 
     private void Death()
     {
+        if(TryGetComponent<Rigidbody>(out Rigidbody rb1))
+        {
+            rb1.isKinematic = false;
+        }
         // Handle enemy death (e.g., play animation, drop loot, etc.)
         Debug.Log("Enemy has died.");
         if(TryGetComponent<Collider>(out Collider col))
         {
             col.enabled = false; // Disable collider on death
+        }
+        if (TryGetComponent<NavMeshAgent>(out NavMeshAgent navMeshAgent))
+        {
+            navMeshAgent.isStopped = true;
+            navMeshAgent.enabled = false;
         }
 
         // Apply ragdoll impulse: either to child rigidbodies (typical ragdoll bones)
@@ -124,6 +134,10 @@ public class enemyHealthSystem : MonoBehaviour
         AudioSource source = GetComponent<AudioSource>();
         if (source == null)
             source = gameObject.AddComponent<AudioSource>();
+        if(TryGetComponent<NavMeshAgent>(out NavMeshAgent agent))
+        {
+            agent.enabled = false;
+        }
 
         if (deathClip != null)
         {

@@ -52,10 +52,13 @@ public class Gun : MonoBehaviour
         // cache original local transform for recoil math
         originalPos = transform.localPosition;
         originalEuler = transform.localEulerAngles;
+
+        FPSController.OnPlayerDeath += onPlayerDeath;
     }
     private void OnDisable()
     {
         inputActions.Disable();
+        FPSController.OnPlayerDeath -= onPlayerDeath;
     }
 
     // Update is called once per frame
@@ -65,7 +68,8 @@ public class Gun : MonoBehaviour
         reloadTime -= Time.deltaTime;
         reloadTime = Mathf.Clamp(reloadTime, 0, Mathf.Infinity);
         shotCooldown = Mathf.Clamp(shotCooldown, 0, Mathf.Infinity);
-        if (inputActions.Player.Attack.IsPressed() && shotCooldown <= 0 && cAmmo > 0)
+        if (inputActions.Player.Attack.IsPressed() && shotCooldown <= 0 && cAmmo > 0  
+            && !gunAnimator.GetCurrentAnimatorStateInfo(0).IsName("reloadThrow"))
         {
             Shoot();
             gunAnimator.SetTrigger("Shoot");
@@ -109,18 +113,22 @@ public class Gun : MonoBehaviour
     {
         Debug.Log("Bang!");
         Debug.DrawRay(shotPoint.transform.position, shotPoint.transform.forward, Color.red, 999f);
-        audioSource.PlayOneShot(shootSound);
+        audioSource.PlayOneShot(shootSound, 0.2f);
         if (Physics.Raycast(shotPoint.transform.position, shotPoint.transform.forward, out RaycastHit hitInfo))
         {
             Debug.Log("Hit: " + hitInfo.collider.name);
-            if(hitInfo.transform.GetComponent<enemyHealthSystem>() != null)
+            if (hitInfo.transform.GetComponent<enemyHealthSystem>() != null)
             {
-                hitInfo.transform.GetComponent<enemyHealthSystem>().OnHit(damage);
+                    hitInfo.transform.GetComponent<enemyHealthSystem>().OnHit(damage);
             }
         }
-
         // Instantiate bullet WITHOUT parenting it to the gun (so it won't move with the camera)
         Instantiate(bulletPrefab, bulletPoint.transform.position, bulletPoint.transform.rotation);
 
     }  
+
+    private void onPlayerDeath()
+    {
+        this.enabled = false;
+    }
 }
